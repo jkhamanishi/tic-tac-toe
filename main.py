@@ -12,8 +12,34 @@ class Rect:
         self.center_x = left + self.width / 2
         self.center_y = bottom + self.height / 2
 
+    @classmethod
+    def from_center(cls, x, y, width, height):
+        left = x - width / 2
+        right = x + width / 2
+        bottom = y - height / 2
+        top = y + height / 2
+        return cls(left, top, right, bottom)
+
+    def get_def(self):
+        return self.left, self.top, self.right, self.bottom
+
     def has_inside(self, x, y):
         return self.left <= x <= self.right and self.bottom <= y <= self.top
+
+
+class TextBox(Rect):
+    def __init__(self, text: str, x, y, width=0, height=0, border_width=0, font_size=25, color="black"):
+        super().__init__(x - width / 2, y + height / 2, x + width / 2, y - height / 2)
+        self.text = text
+        self.border_width = border_width
+        self.font_size = font_size
+        self.color = color
+
+
+class Button(TextBox):
+    def __init__(self, name, text: str, x, y, width, height, border_width, font_size=25):
+        super().__init__(text, x, y, width, height, border_width, font_size)
+        self.name = name
 
 
 class Cell(Rect):
@@ -131,17 +157,22 @@ class MARKER:
 
 
 class Player:
-    def __init__(self, marker, color):
+    def __init__(self, marker=MARKER.O, color=MARKER.BLUE, order="first"):
         self.marker = marker
         self.color = color
+        self.order = order
         self.opponent_marker = MARKER.X if self.marker == MARKER.O else MARKER.O
 
 
 class Computer(Player):
-    def __init__(self, marker, color):
-        super().__init__(marker, color)
+    def __init__(self, marker=MARKER.X, color=MARKER.RED, order="second"):
+        super().__init__(marker, color, order,)
 
     def get_score(self, grid: Grid, score=0, turn=1):
+        # Check if there's a tie
+        if grid.check_tie():
+            return score
+
         # Check if you have won
         won, _, _ = grid.check_win(self.marker)
         if won:
@@ -153,10 +184,6 @@ class Computer(Player):
         about_to_lose = len(losing_cells) > 0
         if about_to_lose:
             score -= 10 ** (9 - turn)
-            return score
-
-        # Check if there's a tie
-        if grid.check_tie():
             return score
 
         next_turn = turn + 1
@@ -205,11 +232,105 @@ class Computer(Player):
         return max(options, key=lambda option: option.score)
 
 
-class GameScreen(Screen):
+class MenuScreen:
+    row_top = 40
+    row_spacing = 60
+
     def __init__(self):
-        super().__init__()
-        self.delay(15)
-        self.enable_clicks = True
+        self.title = TextBox("Tic Tac Toe", 0, 200, font_size=40)
+        self.settings = MenuScreen.Settings()
+        self.set_default_settings()
+        self.start_button = Button("start", "start", 0, -200, width=100, height=60, border_width=3)
+
+    class Settings:
+        def __init__(self):
+            self.list = ["marker", "color", "order"]
+            self.player = dict.fromkeys(self.list)
+            self.computer = dict.fromkeys(self.list)
+            self.switches = dict.fromkeys(self.list)
+
+    class SettingOption:
+        def __init__(self, value, column=None, row=None, color="black"):
+            y = 100 if row is None else MenuScreen.row_top - MenuScreen.row_spacing * row
+            col_spacing = 120
+            x = -col_spacing if (column is None and value == "Player") or column == 0 else col_spacing
+            self.value = value
+            self.textbox = TextBox(self.value, x, y, color=color)
+
+        def change_value(self, value):
+            self.value = value
+            self.textbox.text = value
+
+    class SwitchButton:
+        def __init__(self, setting, row):
+            y = MenuScreen.row_top - MenuScreen.row_spacing * row
+            self.textbox = Button(setting, "switch", 0, y, width=60, height=30, border_width=2, font_size=14)
+
+    def set_default_settings(self):
+        # setting defaults
+        player = Player().__dict__
+        computer = Computer().__dict__
+        self.settings.player["name"] = MenuScreen.SettingOption("Player")
+        self.settings.computer["name"] = MenuScreen.SettingOption("Computer")
+        for row, setting in enumerate(self.settings.list):
+            self.settings.player[setting] = MenuScreen.SettingOption(player[setting], 0, row, player["color"])
+            self.settings.computer[setting] = MenuScreen.SettingOption(computer[setting], 1, row, computer["color"])
+            self.settings.switches[setting] = MenuScreen.SwitchButton(setting, row)
+
+    def get_clicked_button(self, x, y):
+        button_list = [
+            self.settings.switches.get("marker").textbox,
+            self.settings.switches.get("color").textbox,
+            self.settings.switches.get("order").textbox,
+            self.start_button
+        ]
+        for button in button_list:
+            if button.has_inside(x, y):
+                return button.name
+
+    def switch_setting(self, change_setting):
+        player_old = self.settings.player[change_setting].value
+        computer_old = self.settings.computer[change_setting].value
+        self.settings.computer[change_setting].change_value(player_old)
+        self.settings.player[change_setting].change_value(computer_old)
+        if change_setting == "color":
+            for setting in self.settings.list:
+                self.settings.player[setting].textbox.color = computer_old
+                self.settings.computer[setting].textbox.color = player_old
+
+
+class GameOverScreen:
+    def __init__(self, condition=None):
+        self.message = TextBox(condition, 0, 250, font_size=40)
+        self.play = Button("play", "again", -100, -250, width=100, height=60, border_width=3)
+        self.menu = Button("menu", "menu", 100, -250, width=100, height=60, border_width=3)
+
+    def get_clicked_button(self, x, y):
+        for button in [self.play, self.menu]:
+            if button.has_inside(x, y):
+                return button.name
+
+
+class GamePenWrappers:
+    @staticmethod
+    def show_turtle(func):
+        def wrapper(*args, **kwargs):
+            pen = args[0]
+            pen.showturtle()
+            func(*args, **kwargs)
+            pen.hideturtle()
+        return wrapper
+
+    @staticmethod
+    def draw_instantly(func):
+        def wrapper(*args, **kwargs):
+            pen = args[0]
+            pen.getscreen().tracer(0)
+            pen.speed(0)
+            func(*args, **kwargs)
+            pen.speed(GamePen.DEFAULT_SPEED)
+            pen.getscreen().tracer(1)
+        return wrapper
 
 
 class GamePen(Turtle):
@@ -221,6 +342,13 @@ class GamePen(Turtle):
         self.shape("circle")
         self.speed(GamePen.DEFAULT_SPEED)
         self.pensize(GamePen.DEFAULT_SIZE)
+        self.hideturtle()
+        self.getscreen().delay(15)
+
+    def write_text(self, text: str, x, y, font_size):
+        self.up()
+        self.goto(x, y - font_size * 0.75)
+        self.write(text, align="center", font=('Arial', font_size, 'normal'))
 
     def draw_line(self, start_x, start_y, end_x, end_y):
         self.penup()
@@ -237,12 +365,20 @@ class GamePen(Turtle):
         self.setx(rect.left)
         self.sety(rect.top)
 
+    def draw_textbox(self, textbox: TextBox):
+        self.pencolor(textbox.color)
+        if textbox.border_width:
+            self.pensize(textbox.border_width)
+            self.draw_rect(textbox)
+        self.write_text(textbox.text, textbox.center_x, textbox.center_y, textbox.font_size)
+        self.pensize(GamePen.DEFAULT_SIZE)
+        self.pencolor("black")
+
+    @GamePenWrappers.show_turtle
     def draw_grid(self):
-        self.showturtle()
         for i, j, down in [(x, y, y) if line < 2 else (y, x, y) for line, x in enumerate([1, 2] * 2) for y in [0, 3]]:
             self.pen(pendown=bool(down))
             self.goto(Grid.LEFT + Cell.WIDTH * i, Grid.TOP - Cell.WIDTH * j)
-        self.hideturtle()
 
     def draw_o(self, cell: Cell):
         radius = cell.marker_rect.width / 2
@@ -258,18 +394,17 @@ class GamePen(Turtle):
         self.draw_line(cell.marker_rect.left, cell.marker_rect.top, cell.marker_rect.right, cell.marker_rect.bottom)
         self.draw_line(cell.marker_rect.right, cell.marker_rect.top, cell.marker_rect.left, cell.marker_rect.bottom)
 
+    @GamePenWrappers.show_turtle
     def mark(self, cell: Cell, player: Player):
-        self.showturtle()
         self.pencolor(player.color)
         if player.marker == MARKER.X:
             self.draw_x(cell)
         elif player.marker == MARKER.O:
             self.draw_o(cell)
         cell.marker = player.marker
-        self.hideturtle()
 
+    @GamePenWrappers.show_turtle
     def strikethrough(self, cells, cond, color):
-        self.showturtle()
         self.pencolor(color)
         self.pensize(5)
         if cond == "row":
@@ -295,7 +430,20 @@ class GamePen(Turtle):
             bottom = cells[2].bottom
             self.draw_line(left, top, right, bottom)
         self.pensize(GamePen.DEFAULT_SIZE)
-        self.hideturtle()
+
+    @GamePenWrappers.draw_instantly
+    def draw_menu_screen(self, menu_screen: MenuScreen):
+        self.clear()
+        self.draw_textbox(menu_screen.title)
+        for column in [col for col in vars(menu_screen.settings).values() if isinstance(col, dict)]:
+            for setting in column.values():
+                self.draw_textbox(setting.textbox)
+        self.draw_textbox(menu_screen.start_button)
+
+    @GamePenWrappers.draw_instantly
+    def draw_game_over_screen(self, over_screen: GameOverScreen):
+        for textbox in vars(over_screen).values():
+            self.draw_textbox(textbox)
 
 
 class STATE:
@@ -306,28 +454,41 @@ class STATE:
 
 class Game:
     def __init__(self):
-        self.screen = GameScreen()
+        self.screen = Screen()
         self.screen.onclick(self.click_handler)
+        self.screen.enable_clicks = True
         self.pen = GamePen()
+        self.menu = MenuScreen()
         self.grid = Grid()
-        self.player = Player(MARKER.X, MARKER.BLUE)
-        self.computer = Computer(MARKER.O, MARKER.RED)
-        self.current_player = self.computer
+        self.game_over = GameOverScreen()
+        self.player = Player()
+        self.computer = Computer()
+        self.current_player = self.player
         self.state = STATE.MENU
+        self.draw_menu()
 
     def run(self):
         self.screen.mainloop()
+
+    def reset(self):
+        self.grid = Grid()
+        self.current_player = self.player if self.player.order == "first" else self.computer
 
     def change_current_player(self):
         self.current_player = self.player if self.current_player == self.computer else self.computer
 
     def play_move(self, cell):
         self.pen.mark(cell, self.current_player)
-        win, cells, cond = self.grid.check_win(self.current_player.marker)
         self.grid.print_cells()
+        # check if they won
+        win, cells, cond = self.grid.check_win(self.current_player.marker)
         if win:
             self.pen.strikethrough(cells, cond, self.current_player.color)
+            self.end_game("you win!" if self.current_player == self.player else "you lose")
+        elif self.grid.check_tie():
+            self.end_game("tie")
         else:
+            # continue game
             self.change_current_player()
             if self.current_player == self.computer:
                 self.computer_turn()
@@ -337,13 +498,35 @@ class Game:
         self.play_move(cell)
 
     def start_game(self):
+        self.pen.clear()
         self.state = STATE.PLAY
         self.pen.draw_grid()
         if self.current_player == self.computer:
             self.play_move(self.grid.all_cells()[0])
 
+    def draw_menu(self):
+        self.pen.draw_menu_screen(self.menu)
+
+    def end_game(self, condition):
+        self.state = STATE.GAME_OVER
+        self.game_over = GameOverScreen(condition)
+        self.pen.draw_game_over_screen(self.game_over)
+        self.reset()
+
     def menu_handler(self, x, y):
-        pass
+        button_name = self.menu.get_clicked_button(x, y)
+        if button_name in self.menu.settings.list:
+            self.menu.switch_setting(button_name)
+            self.pen.draw_menu_screen(self.menu)
+            self.player = Player(marker=self.menu.settings.player.get("marker").value,
+                                 color=self.menu.settings.player.get("color").value,
+                                 order=self.menu.settings.player.get("order").value)
+            self.computer = Computer(marker=self.menu.settings.computer.get("marker").value,
+                                     color=self.menu.settings.computer.get("color").value,
+                                     order=self.menu.settings.computer.get("order").value)
+            self.current_player = self.player if self.player.order == "first" else self.computer
+        elif button_name == "start":
+            self.start_game()
 
     def game_handler(self, x, y):
         cell = self.grid.get_clicked_cell(x, y)
@@ -351,7 +534,12 @@ class Game:
             self.play_move(cell)
 
     def game_over_handler(self, x, y):
-        pass
+        button_name = self.game_over.get_clicked_button(x, y)
+        if button_name == "play":
+            self.start_game()
+        elif button_name == "menu":
+            self.draw_menu()
+            self.state = STATE.MENU
 
     def click_handler(self, x, y):
         if not self.screen.enable_clicks:
