@@ -471,9 +471,15 @@ class Game:
         self.screen.mainloop()
 
     def screen_setup(self):
-        self.screen.getcanvas().winfo_toplevel().attributes('-fullscreen', True)
-        self.screen.onclick(self.click_handler)
-        self.screen.enable_clicks = True
+        try:
+            with open(".replit"):
+                self.screen.getcanvas().winfo_toplevel().attributes('-fullscreen', True)
+        except FileNotFoundError:
+            self.screen.screensize(250, 250)
+            self.screen.setup(300, 300)
+        finally:
+            self.screen.onclick(self.click_handler)
+            self.screen.enable_clicks = True
 
     def reset(self):
         self.grid = Grid()
