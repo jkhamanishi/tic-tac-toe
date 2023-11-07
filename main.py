@@ -28,7 +28,7 @@ class Rect:
 
 
 class TextBox(Rect):
-    def __init__(self, text: str, x, y, width=0, height=0, border_width=0, font_size=25, color="black"):
+    def __init__(self, text: str, x, y, width=0, height=0, border_width=0, font_size=15, color="black"):
         super().__init__(x - width / 2, y + height / 2, x + width / 2, y - height / 2)
         self.text = text
         self.border_width = border_width
@@ -37,14 +37,14 @@ class TextBox(Rect):
 
 
 class Button(TextBox):
-    def __init__(self, name, text: str, x, y, width, height, border_width, font_size=25):
+    def __init__(self, name, text: str, x, y, width, height, border_width, font_size=15):
         super().__init__(text, x, y, width, height, border_width, font_size)
         self.name = name
 
 
 class Cell(Rect):
-    WIDTH = 100
-    PADDING = 15
+    WIDTH = 40
+    PADDING = 5
 
     def __init__(self, row, col):
         self.row = row
@@ -233,14 +233,14 @@ class Computer(Player):
 
 
 class MenuScreen:
-    row_top = 40
-    row_spacing = 60
+    row_top = 30
+    row_spacing = 40
 
     def __init__(self):
-        self.title = TextBox("Tic Tac Toe", 0, 200, font_size=40)
+        self.title = TextBox("Tic Tac Toe", 0, 100, font_size=30)
         self.settings = MenuScreen.Settings()
         self.set_default_settings()
-        self.start_button = Button("start", "start", 0, -200, width=100, height=60, border_width=3)
+        self.start_button = Button("start", "start", 0, -100, 80, 40, border_width=2)
 
     class Settings:
         def __init__(self):
@@ -251,8 +251,8 @@ class MenuScreen:
 
     class SettingOption:
         def __init__(self, value, column=None, row=None, color="black"):
-            y = 100 if row is None else MenuScreen.row_top - MenuScreen.row_spacing * row
-            col_spacing = 120
+            y = 60 if row is None else MenuScreen.row_top - MenuScreen.row_spacing * row
+            col_spacing = 80
             x = -col_spacing if (column is None and value == "Player") or column == 0 else col_spacing
             self.value = value
             self.textbox = TextBox(self.value, x, y, color=color)
@@ -264,7 +264,7 @@ class MenuScreen:
     class SwitchButton:
         def __init__(self, setting, row):
             y = MenuScreen.row_top - MenuScreen.row_spacing * row
-            self.textbox = Button(setting, "switch", 0, y, width=60, height=30, border_width=2, font_size=14)
+            self.textbox = Button(setting, "switch", 0, y, width=50, height=20, border_width=1, font_size=10)
 
     def set_default_settings(self):
         # setting defaults
@@ -301,9 +301,9 @@ class MenuScreen:
 
 class GameOverScreen:
     def __init__(self, condition=None):
-        self.message = TextBox(condition, 0, 250, font_size=40)
-        self.play = Button("play", "again", -100, -250, width=100, height=60, border_width=3)
-        self.menu = Button("menu", "menu", 100, -250, width=100, height=60, border_width=3)
+        self.message = TextBox(condition, 0, 100, font_size=30)
+        self.play = Button("play", "again", -60, -100, 80, 40, border_width=2)
+        self.menu = Button("menu", "menu", 60, -100, 80, 40, border_width=2)
 
     def get_clicked_button(self, x, y):
         for button in [self.play, self.menu]:
@@ -343,7 +343,7 @@ class GamePen(Turtle):
         self.speed(GamePen.DEFAULT_SPEED)
         self.pensize(GamePen.DEFAULT_SIZE)
         self.hideturtle()
-        self.getscreen().delay(15)
+        self.getscreen().delay(20)
 
     def write_text(self, text: str, x, y, font_size):
         self.up()
@@ -386,8 +386,9 @@ class GamePen(Turtle):
         self.goto(cell.center_x, cell.marker_rect.bottom)
         self.pendown()
         self.speed(0)
-        for _ in range(20):
-            self.circle(radius, extent=360 / 20)
+        divisions = 10
+        for _ in range(divisions):
+            self.circle(radius, extent=360/divisions)
         self.speed(GamePen.DEFAULT_SPEED)
 
     def draw_x(self, cell: Cell):
@@ -455,8 +456,7 @@ class STATE:
 class Game:
     def __init__(self):
         self.screen = Screen()
-        self.screen.onclick(self.click_handler)
-        self.screen.enable_clicks = True
+        self.screen_setup()
         self.pen = GamePen()
         self.menu = MenuScreen()
         self.grid = Grid()
@@ -469,6 +469,11 @@ class Game:
 
     def run(self):
         self.screen.mainloop()
+
+    def screen_setup(self):
+        self.screen.getcanvas().winfo_toplevel().attributes('-fullscreen', True)
+        self.screen.onclick(self.click_handler)
+        self.screen.enable_clicks = True
 
     def reset(self):
         self.grid = Grid()
