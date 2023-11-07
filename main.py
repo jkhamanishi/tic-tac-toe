@@ -89,6 +89,10 @@ class Grid(Rect):
     def all_cells(self):
         return [cell for row in self.cells for cell in row]
 
+    def clear_scores(self):
+        for cell in self.all_cells():
+            cell.score = 0
+
     def get_unmarked_cells(self):
         return [cell for cell in self.all_cells() if cell.is_unmarked()]
 
@@ -183,7 +187,7 @@ class Computer(Player):
         losing_cells = grid.get_winning_cells(self.opponent_marker)
         about_to_lose = len(losing_cells) > 0
         if about_to_lose:
-            score -= 10 ** (9 - turn)
+            score -= len(losing_cells) * 10 ** (9 - turn)
             return score
 
         next_turn = turn + 1
@@ -200,7 +204,7 @@ class Computer(Player):
             # Predict that the player is going to block you
             winning_cells[0].marker = self.opponent_marker
             for cell in grid.get_unmarked_cells():
-                cell.marker = self.opponent_marker
+                cell.marker = self.marker
                 score = self.get_score(grid, score, next_turn + 1)
                 cell.marker = None
             winning_cells[0].marker = None
@@ -223,6 +227,7 @@ class Computer(Player):
         return score
 
     def choose_cell(self, grid: Grid):
+        grid.clear_scores()
         options = grid.get_unmarked_cells()
         for cell in options:
             cell.marker = self.marker
