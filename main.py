@@ -1,6 +1,14 @@
 from turtle import Turtle, Screen
 
 
+def wrap(method):
+    """Calls a decorator that is defined as a static method"""
+    def caller(func_to_be_wrapped):
+        decorator_raw = method.__func__
+        return decorator_raw(func_to_be_wrapped)  # returns wrapper defined in the decorator
+    return caller
+
+
 class Rect:
     def __init__(self, left, top, right, bottom):
         self.left = left
@@ -316,28 +324,6 @@ class GameOverScreen:
                 return button.name
 
 
-class GamePenWrappers:
-    @staticmethod
-    def show_turtle(func):
-        def wrapper(*args, **kwargs):
-            pen = args[0]
-            pen.showturtle()
-            func(*args, **kwargs)
-            pen.hideturtle()
-        return wrapper
-
-    @staticmethod
-    def draw_instantly(func):
-        def wrapper(*args, **kwargs):
-            pen = args[0]
-            pen.getscreen().tracer(0)
-            pen.speed(0)
-            func(*args, **kwargs)
-            pen.speed(GamePen.DEFAULT_SPEED)
-            pen.getscreen().tracer(1)
-        return wrapper
-
-
 class GamePen(Turtle):
     DEFAULT_SPEED = 6
     DEFAULT_SIZE = 3
@@ -349,6 +335,22 @@ class GamePen(Turtle):
         self.pensize(GamePen.DEFAULT_SIZE)
         self.hideturtle()
         self.getscreen().delay(20)
+
+    @staticmethod
+    def show_turtle(func):
+        def wrapper(self: Turtle, *args, **kwargs):
+            self.showturtle()
+            func(self, *args, **kwargs)
+            self.hideturtle()
+        return wrapper
+
+    @staticmethod
+    def draw_instantly(func):
+        def wrapper(self: Turtle, *args, **kwargs):
+            self.getscreen().tracer(0)
+            func(self, *args, **kwargs)
+            self.getscreen().tracer(1)
+        return wrapper
 
     def write_text(self, text: str, x, y, font_size):
         self.up()
@@ -379,7 +381,7 @@ class GamePen(Turtle):
         self.pensize(GamePen.DEFAULT_SIZE)
         self.pencolor("black")
 
-    @GamePenWrappers.show_turtle
+    @wrap(show_turtle)
     def draw_grid(self):
         for i, j, down in [(x, y, y) if line < 2 else (y, x, y) for line, x in enumerate([1, 2] * 2) for y in [0, 3]]:
             self.pen(pendown=bool(down))
@@ -400,7 +402,7 @@ class GamePen(Turtle):
         self.draw_line(cell.marker_rect.left, cell.marker_rect.top, cell.marker_rect.right, cell.marker_rect.bottom)
         self.draw_line(cell.marker_rect.right, cell.marker_rect.top, cell.marker_rect.left, cell.marker_rect.bottom)
 
-    @GamePenWrappers.show_turtle
+    @wrap(show_turtle)
     def mark(self, cell: Cell, player: Player):
         self.pencolor(player.color)
         if player.marker == MARKER.X:
@@ -409,7 +411,7 @@ class GamePen(Turtle):
             self.draw_o(cell)
         cell.marker = player.marker
 
-    @GamePenWrappers.show_turtle
+    @wrap(show_turtle)
     def strikethrough(self, cells, cond, color):
         self.pencolor(color)
         self.pensize(5)
@@ -437,7 +439,7 @@ class GamePen(Turtle):
             self.draw_line(left, top, right, bottom)
         self.pensize(GamePen.DEFAULT_SIZE)
 
-    @GamePenWrappers.draw_instantly
+    @wrap(draw_instantly)
     def draw_menu_screen(self, menu_screen: MenuScreen):
         self.clear()
         self.draw_textbox(menu_screen.title)
@@ -446,7 +448,7 @@ class GamePen(Turtle):
                 self.draw_textbox(setting.textbox)
         self.draw_textbox(menu_screen.start_button)
 
-    @GamePenWrappers.draw_instantly
+    @wrap(draw_instantly)
     def draw_game_over_screen(self, over_screen: GameOverScreen):
         for textbox in vars(over_screen).values():
             self.draw_textbox(textbox)
