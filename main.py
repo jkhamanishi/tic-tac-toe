@@ -169,7 +169,7 @@ class MARKER:
 
 
 class Player:
-    def __init__(self, marker=MARKER.O, color=MARKER.BLUE, order="first"):
+    def __init__(self, marker=MARKER.O, color=MARKER.BLUE, order="second"):
         self.marker = marker
         self.color = color
         self.order = order
@@ -177,7 +177,7 @@ class Player:
 
 
 class Computer(Player):
-    def __init__(self, marker=MARKER.X, color=MARKER.RED, order="second"):
+    def __init__(self, marker=MARKER.X, color=MARKER.RED, order="first"):
         super().__init__(marker, color, order,)
 
     def get_score(self, grid: Grid, score=0, turn=1):
@@ -470,7 +470,7 @@ class Game:
         self.game_over = GameOverScreen()
         self.player = Player()
         self.computer = Computer()
-        self.current_player = self.player
+        self.current_player = self.computer
         self.state = STATE.MENU
         self.draw_menu()
 
