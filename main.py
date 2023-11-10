@@ -469,7 +469,7 @@ class Game:
         self.game_over = GameOver()
         self.player = Player()
         self.computer = Computer()
-        self.current_player = self.computer
+        self.current_player = self.get_fist_player()
         self.state = STATE.MENU
         self.draw_menu()
 
@@ -487,9 +487,12 @@ class Game:
             self.screen.onclick(self.click_handler)
             self.screen.enable_clicks = True
 
+    def get_fist_player(self):
+        return self.player if self.player.order == "first" else self.computer
+
     def reset(self):
         self.grid = Grid()
-        self.current_player = self.player if self.player.order == "first" else self.computer
+        self.current_player = self.get_fist_player()
 
     def change_current_player(self):
         self.current_player = self.player if self.current_player == self.computer else self.computer
@@ -541,7 +544,7 @@ class Game:
             self.computer = Computer(marker=self.menu.settings.computer.get("marker").value,
                                      color=self.menu.settings.computer.get("color").value,
                                      order=self.menu.settings.computer.get("order").value)
-            self.current_player = self.player if self.player.order == "first" else self.computer
+            self.current_player = self.get_fist_player()
         elif button_name == "start":
             self.start_game()
 
