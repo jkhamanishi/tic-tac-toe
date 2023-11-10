@@ -20,24 +20,18 @@ class Rect:
         self.center_x = left + self.width / 2
         self.center_y = bottom + self.height / 2
 
-    @classmethod
-    def from_center(cls, x, y, width, height):
-        left = x - width / 2
-        right = x + width / 2
-        bottom = y - height / 2
-        top = y + height / 2
-        return cls(left, top, right, bottom)
-
-    def get_def(self):
-        return self.left, self.top, self.right, self.bottom
-
     def has_inside(self, x, y):
         return self.left <= x <= self.right and self.bottom <= y <= self.top
 
 
 class TextBox(Rect):
     def __init__(self, text: str, x, y, width=0, height=0, border_width=0, font_size=15, color="black"):
-        super().__init__(x - width / 2, y + height / 2, x + width / 2, y - height / 2)
+        super().__init__(
+            left=x - width / 2,
+            top=y + height / 2,
+            right=x + width / 2,
+            bottom=y - height / 2
+        )
         self.text = text
         self.border_width = border_width
         self.font_size = font_size
