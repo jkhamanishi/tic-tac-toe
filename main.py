@@ -317,6 +317,24 @@ class GameOver:
                 return button.name
 
 
+class GameScreen(Screen().__class__):
+    def __new__(cls, *args, **kwargs):
+        instance = Screen()
+        instance.__class__ = cls
+        return instance
+
+    def __init__(self, onclick):
+        super().__init__()
+        self.onclick(onclick)
+        self.enable_clicks = True
+        try:
+            with open(".replit"):
+                self.getcanvas().winfo_toplevel().attributes('-fullscreen', True)
+        except FileNotFoundError:
+            self.screensize(250, 250)
+            self.setup(300, 300)
+
+
 class GamePen(Turtle):
     DEFAULT_SPEED = 6
     DEFAULT_SIZE = 3
@@ -455,8 +473,7 @@ class STATE:
 
 class Game:
     def __init__(self):
-        self.screen = Screen()
-        self.screen_setup()
+        self.screen = GameScreen(onclick=self.click_handler)
         self.pen = GamePen()
         self.menu = Menu()
         self.grid = Grid()
@@ -469,17 +486,6 @@ class Game:
 
     def run(self):
         self.screen.mainloop()
-
-    def screen_setup(self):
-        try:
-            with open(".replit"):
-                self.screen.getcanvas().winfo_toplevel().attributes('-fullscreen', True)
-        except FileNotFoundError:
-            self.screen.screensize(250, 250)
-            self.screen.setup(300, 300)
-        finally:
-            self.screen.onclick(self.click_handler)
-            self.screen.enable_clicks = True
 
     def get_fist_player(self):
         return self.player if self.player.order == "first" else self.computer
