@@ -245,26 +245,18 @@ class Computer(Player):
         return max(options, key=lambda option: option.score)
 
 
-class MenuScreen:
+class Menu:
     row_top = 30
     row_spacing = 40
 
     def __init__(self):
         self.title = TextBox("Tic Tac Toe", 0, 100, font_size=30)
-        self.settings = MenuScreen.Settings()
-        self.set_default_settings()
+        self.settings = Menu.Settings()
         self.start_button = Button("start", "start", 0, -100, 80, 40, border_width=2)
-
-    class Settings:
-        def __init__(self):
-            self.list = ["marker", "color", "order"]
-            self.player = dict.fromkeys(self.list)
-            self.computer = dict.fromkeys(self.list)
-            self.switches = dict.fromkeys(self.list)
 
     class SettingOption:
         def __init__(self, value, column=None, row=None, color="black"):
-            y = 60 if row is None else MenuScreen.row_top - MenuScreen.row_spacing * row
+            y = 60 if row is None else Menu.row_top - Menu.row_spacing * row
             col_spacing = 80
             x = -col_spacing if (column is None and value == "Player") or column == 0 else col_spacing
             self.value = value
@@ -276,19 +268,26 @@ class MenuScreen:
 
     class SwitchButton:
         def __init__(self, setting, row):
-            y = MenuScreen.row_top - MenuScreen.row_spacing * row
+            y = Menu.row_top - Menu.row_spacing * row
             self.textbox = Button(setting, "switch", 0, y, width=50, height=20, border_width=1, font_size=10)
 
-    def set_default_settings(self):
-        # setting defaults
-        player = Player().__dict__
-        computer = Computer().__dict__
-        self.settings.player["name"] = MenuScreen.SettingOption("Player")
-        self.settings.computer["name"] = MenuScreen.SettingOption("Computer")
-        for row, setting in enumerate(self.settings.list):
-            self.settings.player[setting] = MenuScreen.SettingOption(player[setting], 0, row, player["color"])
-            self.settings.computer[setting] = MenuScreen.SettingOption(computer[setting], 1, row, computer["color"])
-            self.settings.switches[setting] = MenuScreen.SwitchButton(setting, row)
+    class Settings:
+        def __init__(self):
+            self.list = ["marker", "color", "order"]
+            self.player = dict.fromkeys(self.list)
+            self.computer = dict.fromkeys(self.list)
+            self.switches = dict.fromkeys(self.list)
+            self.set_default_settings()
+
+        def set_default_settings(self):
+            player = Player().__dict__
+            computer = Computer().__dict__
+            self.player["name"] = Menu.SettingOption("Player")
+            self.computer["name"] = Menu.SettingOption("Computer")
+            for row, setting in enumerate(self.list):
+                self.player[setting] = Menu.SettingOption(player[setting], 0, row, player["color"])
+                self.computer[setting] = Menu.SettingOption(computer[setting], 1, row, computer["color"])
+                self.switches[setting] = Menu.SwitchButton(setting, row)
 
     def get_clicked_button(self, x, y):
         button_list = [
@@ -312,7 +311,7 @@ class MenuScreen:
                 self.settings.computer[setting].textbox.color = player_old
 
 
-class GameOverScreen:
+class GameOver:
     def __init__(self, condition=None):
         self.message = TextBox(condition, 0, 100, font_size=30)
         self.play = Button("play", "again", -60, -100, 80, 40, border_width=2)
@@ -440,7 +439,7 @@ class GamePen(Turtle):
         self.pensize(GamePen.DEFAULT_SIZE)
 
     @wrap(draw_instantly)
-    def draw_menu_screen(self, menu_screen: MenuScreen):
+    def draw_menu_screen(self, menu_screen: Menu):
         self.clear()
         self.draw_textbox(menu_screen.title)
         for column in [col for col in vars(menu_screen.settings).values() if isinstance(col, dict)]:
@@ -449,7 +448,7 @@ class GamePen(Turtle):
         self.draw_textbox(menu_screen.start_button)
 
     @wrap(draw_instantly)
-    def draw_game_over_screen(self, over_screen: GameOverScreen):
+    def draw_game_over_screen(self, over_screen: GameOver):
         for textbox in vars(over_screen).values():
             self.draw_textbox(textbox)
 
@@ -465,9 +464,9 @@ class Game:
         self.screen = Screen()
         self.screen_setup()
         self.pen = GamePen()
-        self.menu = MenuScreen()
+        self.menu = Menu()
         self.grid = Grid()
-        self.game_over = GameOverScreen()
+        self.game_over = GameOver()
         self.player = Player()
         self.computer = Computer()
         self.current_player = self.computer
@@ -527,7 +526,7 @@ class Game:
 
     def end_game(self, condition):
         self.state = STATE.GAME_OVER
-        self.game_over = GameOverScreen(condition)
+        self.game_over = GameOver(condition)
         self.pen.draw_game_over_screen(self.game_over)
         self.reset()
 
