@@ -1,4 +1,4 @@
-from turtle import Turtle, Screen
+from turtle import Turtle, TurtleScreen, Screen
 
 
 def wrap(method):
@@ -317,14 +317,15 @@ class GameOver:
                 return button.name
 
 
-class GameScreen(Screen().__class__):
+class GameScreen(TurtleScreen):
     def __new__(cls, *args, **kwargs):
         instance = Screen()
+        instance.setup(300, 300)
         instance.__class__ = cls
         return instance
 
     def __init__(self, onclick):
-        super().__init__()
+        super().__init__(self.getcanvas())
         self.onclick(onclick)
         self.enable_clicks = True
         try:
@@ -332,7 +333,6 @@ class GameScreen(Screen().__class__):
                 self.getcanvas().winfo_toplevel().attributes('-fullscreen', True)
         except FileNotFoundError:
             self.screensize(250, 250)
-            self.setup(300, 300)
 
 
 class GamePen(Turtle):
